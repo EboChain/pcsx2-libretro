@@ -1,0 +1,61 @@
+name: LRPS2-libretro Linux ARM64
+
+on:
+  pull_request:
+    branches: [libretroization]
+
+  push:
+    branches: [libretroization]
+
+  workflow_dispatch:
+
+jobs:
+  Linux-ARM64:
+    name: Build for ARM64
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo dpkg --add-architecture arm64
+        sudo apt update
+
+        sudo apt install -y \
+          git \
+          wget \
+          build-essential \
+          cmake \
+          ninja-build \
+          pkg-config \
+          gcc-aarch64-linux-gnu \
+          g++-aarch64-linux-gnu \
+          liblzma-dev:arm64 \
+          zlib1g-dev:arm64 \
+          libgl-dev:arm64
+
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Build libretro core
+      run: |
+        mkdir build
+        cd build
+
+        cmake .. \
+          -DCMAKE_SYSTEM_NAME=Linux \
+          -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+          -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+          -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DUSE_OPENGL=ON \
+          -GNinja
+
+        ninja -j$(nproc)
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: pcsx2-libretro-arm64
+        path: build/bin/*.so
